@@ -18,9 +18,11 @@ const build = async (): Promise<void> => {
     outdir,
     // Cards, editors and translations are dynamic imports. Chunks are loaded
     // relative to the card's URL, so dist/ has to be deployed as a whole.
-    // Flat on purpose: the Marketplace only downloads files directly in dist/, not subfolders.
+    // The chunks mirror src/, like chunks/cards/random/card-<hash>.js and
+    // chunks/translations/de-evolution-card-<hash>.js; shared code sits in chunks/.
+    // Releases ship dist/ as one zip, see .github/workflows/release.yml.
     splitting: true,
-    naming: { entry: "pokemon-card-lit.js", chunk: "chunk-[name]-[hash].js" },
+    naming: { entry: "pokemon-card-lit.js", chunk: "chunks/[dir]/[name]-[hash].[ext]" },
     target: "browser",
     format: "esm",
     minify: !dev,

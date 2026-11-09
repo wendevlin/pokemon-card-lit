@@ -1,5 +1,6 @@
 {
   "name": "Pokémon Card (Lit)",
-  "filename": "pokemon-card-lit.js",
+  "filename": "pokemon-card-lit.zip",
+  "zip_release": true,
   "render_readme": true
 }

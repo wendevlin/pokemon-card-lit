@@ -11,23 +11,44 @@ Same cards, same card types and config as [pokemon-card](../pokemon-card), which
 1. In the Marketplace, select **Add from link** and enter `https://github.com/wendevlin/pokemon-card-lit`.
 2. Download **Pokémon Card (Lit)** and reload the browser.
 
-The Marketplace installs the assets of the latest release: `pokemon-card-lit.js` and the chunks it loads. A GitHub Action builds and attaches them whenever a release is published.
+Every release has one asset, `pokemon-card-lit.zip` (`zip_release` in `hacs.json`). The Marketplace unpacks it into one folder: `pokemon-card-lit.js` at the root is the dashboard resource, the chunks it loads are in `chunks/`. A GitHub Action builds, tests and attaches the zip whenever a release is published.
+
+> Installing plugins from a zip needs a Marketplace version that supports `zip_release` for dashboard plugins.
 
 ### Manual
 
-Copy all files of `dist/` (from `bun run build` or a release) to `config/www/pokemon-card-lit/` and add `/local/pokemon-card-lit/pokemon-card-lit.js` as a dashboard resource of type JavaScript module.
+Unpack `pokemon-card-lit.zip` from a release (or copy `dist/` after `bun run build`) to `config/www/pokemon-card-lit/`, keeping the folders, and add `/local/pokemon-card-lit/pokemon-card-lit.js` as a dashboard resource of type JavaScript module.
 
 ## Development
 
 ```sh
 bun install
-bun run dev      # build to dist/ and rebuild on change
-bun run build    # production build
-bun run check    # TypeScript
-bun run lint     # Biome
+bun run dev           # build to dist/ and rebuild on change
+bun run build         # production build
+bun run package       # production build, packed into pokemon-card-lit.zip
+bun run test:release  # pack the zip and test it in Chrome
+bun run check         # TypeScript
+bun run lint          # Biome
 ```
 
-Deploy all of `dist/` and add `dist/pokemon-card-lit.js` as a dashboard resource: cards, editors and translations are chunks loaded next to it.
+The build mirrors `src/` in `dist/`:
+
+```
+dist/
+├── pokemon-card-lit.js                     # entry point, registers the cards
+└── chunks/
+    ├── index-<hash>.js                     # shared: Lit, <hac-card>, PokéAPI, …
+    ├── cards/
+    │   ├── random/card-<hash>.js           # loaded when a card is shown
+    │   ├── random/editor-<hash>.js         # loaded when its editor opens
+    │   └── evolution/…
+    └── translations/
+        └── de-evolution-card-<hash>.js     # one per language, card and part
+```
+
+Chunks load relative to the entry point, so deploy all of `dist/` with its folders.
+
+`test:release` unpacks the zip, serves it under `/hacsfiles/pokemon-card-lit/` like the Marketplace, and in headless Chrome mounts both cards in German (with a faked language context and a mocked PokéAPI) and opens both editors. Any missing chunk or error fails it. It needs Google Chrome installed.
 
 ## @home-assistant/components
 

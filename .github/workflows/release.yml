@@ -1,7 +1,8 @@
 name: Release
 
-# The Marketplace downloads every asset of a release, so all chunks next to
-# pokemon-card-lit.js are installed together.
+# Attaches the build as one zip to every published release. The Marketplace
+# installs it unpacked (see hacs.json): pokemon-card-lit.js at the root, the
+# chunks it loads in chunks/.
 on:
   release:
     types: [published]
@@ -18,8 +19,10 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bun run check
       - run: bun run lint
-      - run: bun run build
-      - name: Upload the build to the release
+      # Builds and packs pokemon-card-lit.zip, then tests the zip in Chrome
+      # (preinstalled on the runner).
+      - run: bun run test:release
+      - name: Upload the zip to the release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${{ github.event.release.tag_name }}" dist/*.js --clobber
+        run: gh release upload "${{ github.event.release.tag_name }}" pokemon-card-lit.zip --clobber

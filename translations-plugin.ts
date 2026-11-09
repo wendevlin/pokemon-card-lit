@@ -1,5 +1,5 @@
 import { readdir } from "node:fs/promises";
-import { basename, join } from "node:path";
+import { basename, join, resolve } from "node:path";
 import type { BunPlugin } from "bun";
 
 /**
@@ -32,13 +32,16 @@ export const translationsPlugin = (dir: string): BunPlugin => ({
     const languages = async (): Promise<string[]> =>
       (await readdir(dir)).filter((file) => file.endsWith(".json")).map((file) => basename(file, ".json"));
 
+    // A path directly in `dir`, as if the chunk were a file there, so chunk
+    // names can use `[dir]` and `[name]`: chunks/translations/de-evolution-card-<hash>.js
+    // Not in subfolders: Bun only makes `[dir]` relative if the folder exists.
+    const root = resolve(dir);
     build.onResolve({ filter: /^translations:/ }, (args) => ({
-      // The path names the chunk: chunk-translations-de-evolution-card-<hash>.js
-      path: `translations-${args.path.slice("translations:".length).replaceAll("/", "-")}`,
+      path: join(root, args.path.slice("translations:".length).replaceAll("/", "-")),
       namespace: "translations",
     }));
 
-    build.onLoad({ filter: /^translations-loaders$/, namespace: "translations" }, async () => {
+    const loadLoaders = async () => {
       const en = await read("en");
       const loaders: string[] = [];
       for (const language of await languages()) {
@@ -56,15 +59,10 @@ export const translationsPlugin = (dir: string): BunPlugin => ({
         loader: "js",
         contents: `export const languages = ${JSON.stringify(await languages())};
 export const loaders = {\n${loaders.join(",\n")}\n};`,
-      };
-    });
+      } as const;
+    };
 
-    build.onLoad({ filter: /^translations-(?!loaders$)/, namespace: "translations" }, async (args) => {
-      // From the end: languages can contain "-" themselves, like "zh-Hans".
-      const segments = args.path.slice("translations-".length).split("-");
-      const part = segments.pop()!;
-      const section = segments.pop()!;
-      const language = segments.join("-");
+    const loadChunk = async (language: string, section: string, part: string) => {
       const source = (await read("en"))[section]?.[part] ?? {};
       const translated = (await read(language))[section]?.[part] ?? {};
 
@@ -80,7 +78,23 @@ export const loaders = {\n${loaders.join(",\n")}\n};`,
           console.warn(`[translations] ${language}: ${section}.${part}.${key} is not in en.json, ignored`);
         }
       }
-      return { loader: "js", contents: `export default ${JSON.stringify(strings)};` };
+      return { loader: "js", contents: `export default ${JSON.stringify(strings)};` } as const;
+    };
+
+    build.onLoad({ filter: /.*/, namespace: "translations" }, (args) => {
+      const name = basename(args.path);
+      if (name === "loaders") {
+        return loadLoaders();
+      }
+      // From the end: languages can contain "-" themselves, like "zh-Hans".
+      const segments = name.split("-");
+      const part = segments.pop();
+      const section = segments.pop();
+      const language = segments.join("-");
+      if (!part || !section || !language) {
+        throw new Error(`Unknown translations module: ${args.path}`);
+      }
+      return loadChunk(language, section, part);
     });
   },
 });
