@@ -1,6 +1,6 @@
 name: Release
 
-# HACS downloads every asset of a release, so all chunks next to
+# The Marketplace downloads every asset of a release, so all chunks next to
 # pokemon-card-lit.js are installed together.
 on:
   release:

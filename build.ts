@@ -18,7 +18,7 @@ const build = async (): Promise<void> => {
     outdir,
     // Cards, editors and translations are dynamic imports. Chunks are loaded
     // relative to the card's URL, so dist/ has to be deployed as a whole.
-    // Flat on purpose: HACS only downloads files directly in dist/, not subfolders.
+    // Flat on purpose: the Marketplace only downloads files directly in dist/, not subfolders.
     splitting: true,
     naming: { entry: "pokemon-card-lit.js", chunk: "chunk-[name]-[hash].js" },
     target: "browser",

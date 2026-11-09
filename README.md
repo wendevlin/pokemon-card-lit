@@ -6,12 +6,12 @@ Same cards, same card types and config as [pokemon-card](../pokemon-card), which
 
 ## Installation
 
-### HACS
+### Marketplace
 
-1. In HACS, open the menu → **Custom repositories**, add `https://github.com/wendevlin/pokemon-card-lit` with the type **Dashboard**.
+1. In the Marketplace, open the menu → **Custom repositories**, add `https://github.com/wendevlin/pokemon-card-lit` with the type **Dashboard**.
 2. Download **Pokémon Card (Lit)** and reload the browser.
 
-HACS installs the assets of the latest release: `pokemon-card-lit.js` and the chunks it loads. A GitHub Action builds and attaches them whenever a release is published.
+The Marketplace installs the assets of the latest release: `pokemon-card-lit.js` and the chunks it loads. A GitHub Action builds and attaches them whenever a release is published.
 
 ### Manual
 
