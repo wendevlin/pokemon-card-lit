@@ -8,7 +8,7 @@ Same cards, same card types and config as [pokemon-card](../pokemon-card), which
 
 ### Marketplace
 
-1. In the Marketplace, open the menu → **Custom repositories**, add `https://github.com/wendevlin/pokemon-card-lit` with the type **Dashboard**.
+1. In the Marketplace, select **Add from link** and enter `https://github.com/wendevlin/pokemon-card-lit`.
 2. Download **Pokémon Card (Lit)** and reload the browser.
 
 The Marketplace installs the assets of the latest release: `pokemon-card-lit.js` and the chunks it loads. A GitHub Action builds and attaches them whenever a release is published.
