@@ -1,0 +1,27 @@
+{
+  "name": "pokemon-card-lit",
+  "version": "0.1.0",
+  "description": "Home Assistant card that shows a random Pokémon, built with Lit on hac-card.",
+  "author": "Wendelin",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "dev": "bun build.ts --dev",
+    "build": "NODE_ENV=production bun build.ts",
+    "check": "tsc",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "update-components": "bun scripts/update-components.ts"
+  },
+  "dependencies": {
+    "@home-assistant/components": "file:./vendor/home-assistant-components-0.0.0-git.ccdac789fd.tgz",
+    "@lit/context": "^1.1.6",
+    "lit": "^3.3.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.6.3",
+    "@types/bun": "^1.4.4",
+    "typescript": "^6.0.3"
+  }
+}

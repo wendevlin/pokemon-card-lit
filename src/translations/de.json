@@ -1,0 +1,32 @@
+{
+  "common": {
+    "card": {
+      "load_error": "Pokémon konnte nicht geladen werden."
+    },
+    "editor": {
+      "appearance": "Darstellung",
+      "appearance_outlined": "Umrandet",
+      "appearance_raised": "Erhöht",
+      "invalid_appearance": "Darstellung muss eine der folgenden sein: {options}"
+    }
+  },
+  "evolution": {
+    "card": {
+      "evolve": "Entwickeln",
+      "fully_evolved": "Voll entwickelt",
+      "no_pokemon": "Wähle im Karteneditor ein Pokémon aus."
+    },
+    "editor": {
+      "pokemon": "Pokémon",
+      "pokemon_helper": "Nur Pokémon, die sich entwickeln können."
+    }
+  },
+  "random": {
+    "card": {},
+    "editor": {
+      "show_image": "Bild anzeigen",
+      "show_name": "Name anzeigen",
+      "show_description": "Beschreibung anzeigen"
+    }
+  }
+}

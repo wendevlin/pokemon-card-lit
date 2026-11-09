@@ -1,0 +1,32 @@
+{
+  "common": {
+    "card": {
+      "load_error": "Couldn't load a Pokémon."
+    },
+    "editor": {
+      "appearance": "Appearance",
+      "appearance_outlined": "Outlined",
+      "appearance_raised": "Raised",
+      "invalid_appearance": "Appearance must be one of: {options}"
+    }
+  },
+  "evolution": {
+    "card": {
+      "evolve": "Evolve",
+      "fully_evolved": "Fully evolved",
+      "no_pokemon": "Choose a Pokémon in the card editor."
+    },
+    "editor": {
+      "pokemon": "Pokémon",
+      "pokemon_helper": "Only Pokémon that can evolve."
+    }
+  },
+  "random": {
+    "card": {},
+    "editor": {
+      "show_image": "Show image",
+      "show_name": "Show name",
+      "show_description": "Show description"
+    }
+  }
+}
