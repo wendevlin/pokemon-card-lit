@@ -1,6 +1,6 @@
 {
   "name": "pokemon-card-lit",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Home Assistant card that shows a random Pokémon, built with Lit on hac-card.",
   "author": "Wendelin",
   "type": "module",
