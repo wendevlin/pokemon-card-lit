@@ -1,5 +1,7 @@
 node_modules
 dist
+dist-legacy
+release
 *.log
 .DS_Store
 *.zip

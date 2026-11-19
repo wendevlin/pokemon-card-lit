@@ -5,6 +5,9 @@ import { translationsPlugin } from "./translations-plugin";
 
 const dev = process.argv.includes("--dev");
 const outdir = "dist";
+// The legacy build: everything in one file, for Marketplace and Home Assistant
+// versions that can't install a zip. Production only.
+const legacyOutdir = "dist-legacy";
 
 // Bun resolves the "development" export condition (Lit's dev build) unless
 // NODE_ENV is "production" when the process starts, so the scripts set it.
@@ -12,16 +15,18 @@ if (!dev && process.env.NODE_ENV !== "production") {
   console.warn('NODE_ENV is not "production": Lit\'s dev build will be bundled. Use `bun run build`.');
 }
 
-const build = async (): Promise<void> => {
+const build = async (legacy = false): Promise<void> => {
   const result = await Bun.build({
     entrypoints: ["src/index.ts"],
-    outdir,
+    outdir: legacy ? legacyOutdir : outdir,
     // Cards, editors and translations are dynamic imports. Chunks are loaded
     // relative to the card's URL, so dist/ has to be deployed as a whole.
     // The chunks mirror src/, like chunks/cards/random/card-<hash>.js and
     // chunks/translations/de-evolution-card-<hash>.js; shared code sits in chunks/.
     // Releases ship dist/ as one zip, see .github/workflows/release.yml.
-    splitting: true,
+    // The legacy build inlines them: one bigger file that loads everything up
+    // front, but works wherever a single .js file can be installed.
+    splitting: !legacy,
     naming: { entry: "pokemon-card-lit.js", chunk: "chunks/[dir]/[name]-[hash].[ext]" },
     target: "browser",
     format: "esm",
@@ -47,7 +52,11 @@ const build = async (): Promise<void> => {
 };
 
 await rm(outdir, { recursive: true, force: true });
+await rm(legacyOutdir, { recursive: true, force: true });
 await build();
+if (!dev) {
+  await build(true);
+}
 
 if (dev) {
   console.info("Watching src/ for changes…");

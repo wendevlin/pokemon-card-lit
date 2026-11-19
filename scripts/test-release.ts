@@ -1,10 +1,14 @@
 /**
- * Tests the release zip the way the Marketplace installs it: unpacked into a
- * folder and served under /hacsfiles/<repository>/, with the entry point at the
- * root of the zip and the chunks in subfolders.
+ * Tests both release assets the way the Marketplace installs them, in a folder
+ * served under /hacsfiles/<repository>/:
+ *
+ * - `pokemon-card-lit.zip`, unpacked: the entry point at the root, the chunks
+ *   in subfolders.
+ * - `pokemon-card-lit.js`, the legacy single-file build for versions that
+ *   can't install a zip: everything in one file, nothing else loads.
  *
  * ```sh
- * bun run test:release   # packs the zip first
+ * bun run test:release   # packs release/ first
  * ```
  *
  * In headless Chrome, it registers the cards, mounts both of them in German
@@ -12,14 +16,15 @@
  * PokéAPI is mocked. Any failed request, page error or console error fails
  * the test, so a chunk with a broken relative path is caught.
  */
-import { mkdtemp, readdir, rm } from "node:fs/promises";
+import { copyFile, mkdtemp, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, relative, resolve } from "node:path";
 import { $ } from "bun";
 import { chromium, type Page, type Route } from "playwright-core";
 
 const root = resolve(import.meta.dir, "..");
-const zip = join(root, "pokemon-card-lit.zip");
+const release = join(root, "release");
+const zip = join(release, "pokemon-card-lit.zip");
 const BASE = "/hacsfiles/pokemon-card-lit/";
 const ENTRY = "pokemon-card-lit.js";
 
@@ -27,19 +32,6 @@ declare global {
   /** Defined by the test page. */
   function cardRoot(tag: string): ShadowRoot | null | undefined;
 }
-
-// --- Unpack the zip ---------------------------------------------------------
-
-if (!(await Bun.file(zip).exists())) {
-  throw new Error(`${relative(root, zip)} is missing, run \`bun run package\` first`);
-}
-const dir = await mkdtemp(join(tmpdir(), "pokemon-card-lit-release-"));
-await $`unzip -q ${zip} -d ${dir}`;
-const files = (await readdir(dir, { recursive: true, withFileTypes: true }))
-  .filter((entry) => entry.isFile())
-  .map((entry) => relative(dir, join(entry.parentPath, entry.name)))
-  .sort();
-console.info(`Zip contents (${files.length} files):\n${files.map((file) => `  ${file}`).join("\n")}`);
 
 const failures: string[] = [];
 const check = (ok: boolean, message: string): void => {
@@ -49,11 +41,35 @@ const check = (ok: boolean, message: string): void => {
   }
 };
 
-check(files.includes(ENTRY), `${ENTRY} is at the root of the zip`);
+// --- Install both assets ----------------------------------------------------
+
+if (!(await Bun.file(zip).exists())) {
+  throw new Error(`${relative(root, zip)} is missing, run \`bun run package\` first`);
+}
+const assets = (await readdir(release)).sort();
 check(
-  files.some((file) => file.includes("/")),
+  JSON.stringify(assets) === JSON.stringify(["pokemon-card-lit.js", "pokemon-card-lit.zip"]),
+  `the release has the zip and the legacy file (${assets.join(", ")})`,
+);
+
+const listFiles = async (dir: string): Promise<string[]> =>
+  (await readdir(dir, { recursive: true, withFileTypes: true }))
+    .filter((entry) => entry.isFile())
+    .map((entry) => relative(dir, join(entry.parentPath, entry.name)))
+    .sort();
+
+const zipDir = await mkdtemp(join(tmpdir(), "pokemon-card-lit-zip-"));
+await $`unzip -q ${zip} -d ${zipDir}`;
+const zipFiles = await listFiles(zipDir);
+console.info(`Zip contents (${zipFiles.length} files):\n${zipFiles.map((file) => `  ${file}`).join("\n")}`);
+check(zipFiles.includes(ENTRY), `${ENTRY} is at the root of the zip`);
+check(
+  zipFiles.some((file) => file.includes("/")),
   "the chunks are in subfolders",
 );
+
+const legacyDir = await mkdtemp(join(tmpdir(), "pokemon-card-lit-legacy-"));
+await copyFile(join(release, ENTRY), join(legacyDir, ENTRY));
 
 // --- Serve it like the Marketplace ------------------------------------------
 
@@ -76,6 +92,9 @@ const page = `<!doctype html>
     </script>
   </body>
 </html>`;
+
+// The installed asset the server serves under BASE.
+let dir = zipDir;
 
 const server = Bun.serve({
   port: 0,
@@ -157,21 +176,26 @@ const mockApi = async (page: Page): Promise<void> => {
 
 // --- Run it in Chrome -------------------------------------------------------
 
-const browser = await chromium.launch({ channel: "chrome" });
-try {
+/**
+ * Opens a fresh page with `installed` served under BASE. `split` is the zip's
+ * build: chunks load on demand. Otherwise it is the legacy single file.
+ */
+const testInstall = async (name: string, installed: string, split: boolean): Promise<void> => {
+  console.info(`\n--- The ${name} ---`);
+  dir = installed;
   const tab = await browser.newPage();
   const loaded: string[] = [];
-  tab.on("pageerror", (err) => failures.push(`page error: ${err.message}`));
+  tab.on("pageerror", (err) => failures.push(`${name}: page error: ${err.message}`));
   tab.on("console", (message) => {
     if (message.type() === "error") {
-      failures.push(`console error: ${message.text()}`);
+      failures.push(`${name}: console error: ${message.text()}`);
     }
   });
-  tab.on("requestfailed", (request) => failures.push(`request failed: ${request.url()}`));
+  tab.on("requestfailed", (request) => failures.push(`${name}: request failed: ${request.url()}`));
   tab.on("response", (response) => {
     const url = new URL(response.url());
     if (response.status() >= 400) {
-      failures.push(`HTTP ${response.status()}: ${response.url()}`);
+      failures.push(`${name}: HTTP ${response.status()}: ${response.url()}`);
     } else if (url.pathname.startsWith(BASE)) {
       loaded.push(url.pathname.slice(BASE.length));
     }
@@ -186,12 +210,14 @@ try {
     JSON.stringify(registered) === JSON.stringify(["pokemon-card", "pokemon-evolution-card"]),
     `both cards are registered for the card picker (${registered?.join(", ")})`,
   );
-  // Besides the entry point, only Bun's small runtime chunk (chunk preloading,
-  // decorators) loads up front: no card, editor or translation.
-  check(
-    !loaded.some((file) => file.startsWith("chunks/cards/") || file.startsWith("chunks/translations/")),
-    `no card code loads before a card is used (${loaded.join(", ")})`,
-  );
+  if (split) {
+    // Besides the entry point, only Bun's small runtime chunk (chunk preloading,
+    // decorators) loads up front: no card, editor or translation.
+    check(
+      !loaded.some((file) => file.startsWith("chunks/cards/") || file.startsWith("chunks/translations/")),
+      `no card code loads before a card is used (${loaded.join(", ")})`,
+    );
+  }
 
   // The random card, in German.
   await tab.evaluate(() => {
@@ -269,20 +295,34 @@ try {
   );
   check(editors.pokemonOptions > 0, "the evolution editor lists Pokémon");
 
-  console.info(`Loaded from the zip:\n${[...new Set(loaded)].map((file) => `  ${file}`).join("\n")}`);
-  check(
-    loaded.some((file) => file.startsWith("chunks/cards/")) &&
-      loaded.some((file) => file.startsWith("chunks/translations/")),
-    "cards and translations load from their subfolders",
-  );
+  const files = [...new Set(loaded)];
+  console.info(`Loaded from the ${name}:\n${files.map((file) => `  ${file}`).join("\n")}`);
+  if (split) {
+    check(
+      files.some((file) => file.startsWith("chunks/cards/")) &&
+        files.some((file) => file.startsWith("chunks/translations/")),
+      "cards and translations load from their subfolders",
+    );
+  } else {
+    check(JSON.stringify(files) === JSON.stringify([ENTRY]), `only ${ENTRY} loads, it has everything in it`);
+  }
+
+  await tab.close();
+};
+
+const browser = await chromium.launch({ channel: "chrome" });
+try {
+  await testInstall("zip", zipDir, true);
+  await testInstall("legacy file", legacyDir, false);
 } finally {
   await browser.close();
   server.stop(true);
-  await rm(dir, { recursive: true, force: true });
+  await rm(zipDir, { recursive: true, force: true });
+  await rm(legacyDir, { recursive: true, force: true });
 }
 
 if (failures.length) {
   console.error(`\n${failures.length} failure(s):\n${failures.map((f) => `  ${f}`).join("\n")}`);
   process.exit(1);
 }
-console.info("\nThe release zip works.");
+console.info("\nBoth release assets work.");

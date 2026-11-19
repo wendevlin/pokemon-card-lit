@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "bun build.ts --dev",
     "build": "NODE_ENV=production bun build.ts",
-    "package": "bun run build && rm -f pokemon-card-lit.zip && cd dist && zip -qrX ../pokemon-card-lit.zip .",
+    "package": "bun run build && rm -rf release && mkdir release && cp dist-legacy/pokemon-card-lit.js release/ && cd dist && zip -qrX ../release/pokemon-card-lit.zip .",
     "test:release": "bun run package && bun scripts/test-release.ts",
     "check": "tsc",
     "lint": "biome check .",

@@ -11,22 +11,27 @@ Same cards, same card types and config as [pokemon-card](../pokemon-card), which
 1. In the Marketplace, select **Add from link** and enter `https://github.com/wendevlin/pokemon-card-lit`.
 2. Download **Pokémon Card (Lit)** and reload the browser.
 
-Every release has one asset, `pokemon-card-lit.zip` (`zip_release` in `hacs.json`). The Marketplace unpacks it into one folder: `pokemon-card-lit.js` at the root is the dashboard resource, the chunks it loads are in `chunks/`. A GitHub Action builds, tests and attaches the zip whenever a release is published.
+Every release has two assets:
 
-> Installing plugins from a zip needs a Marketplace version that supports `zip_release` for dashboard plugins.
+- `pokemon-card-lit.zip` (`zip_release` in `hacs.json`): the Marketplace unpacks it into one folder. `pokemon-card-lit.js` at the root is the dashboard resource, the chunks it loads are in `chunks/`. A card's code only loads when a dashboard shows it.
+- `pokemon-card-lit.js`: the legacy build, the same cards in one file, for Marketplace and Home Assistant versions that can't install a zip. It loads everything up front.
+
+Both install as `pokemon-card-lit.js`, so the dashboard resource is the same either way. A GitHub Action builds, tests and attaches both whenever a release is published.
 
 ### Manual
 
 Unpack `pokemon-card-lit.zip` from a release (or copy `dist/` after `bun run build`) to `config/www/pokemon-card-lit/`, keeping the folders, and add `/local/pokemon-card-lit/pokemon-card-lit.js` as a dashboard resource of type JavaScript module.
+
+Or copy only the legacy `pokemon-card-lit.js` from a release (or `dist-legacy/`) to the same place: one file, same resource.
 
 ## Development
 
 ```sh
 bun install
 bun run dev           # build to dist/ and rebuild on change
-bun run build         # production build
-bun run package       # production build, packed into pokemon-card-lit.zip
-bun run test:release  # pack the zip and test it in Chrome
+bun run build         # production build to dist/, legacy build to dist-legacy/
+bun run package       # production builds, packed into release/
+bun run test:release  # pack release/ and test both assets in Chrome
 bun run check         # TypeScript
 bun run lint          # Biome
 ```
@@ -48,7 +53,11 @@ dist/
 
 Chunks load relative to the entry point, so deploy all of `dist/` with its folders.
 
-`test:release` unpacks the zip, serves it under `/hacsfiles/pokemon-card-lit/` like the Marketplace, and in headless Chrome mounts both cards in German (with a faked language context and a mocked PokéAPI) and opens both editors. Any missing chunk or error fails it. It needs Google Chrome installed.
+The legacy build in `dist-legacy/` is the same entry point without code splitting: `pokemon-card-lit.js` with every card, editor and translation inlined (about 36 kB instead of 3 kB up front).
+
+`bun run package` puts both release assets in `release/`: `pokemon-card-lit.zip` (all of `dist/`) and `pokemon-card-lit.js` (from `dist-legacy/`).
+
+`test:release` installs each asset (the zip unpacked, the legacy file on its own), serves it under `/hacsfiles/pokemon-card-lit/` like the Marketplace, and in headless Chrome mounts both cards in German (with a faked language context and a mocked PokéAPI) and opens both editors. Any missing chunk or error fails it, and so does the legacy file loading anything besides itself. It needs Google Chrome installed.
 
 ## @home-assistant/components
 
