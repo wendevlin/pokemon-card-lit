@@ -13,7 +13,7 @@ Same cards, same card types and config as [pokemon-card](../pokemon-card), which
 
 Every release has two assets:
 
-- `pokemon-card-lit.zip` (`zip_release` in `hacs.json`): the Marketplace unpacks it into one folder. `pokemon-card-lit.js` at the root is the dashboard resource, the chunks it loads are in `chunks/`. A card's code only loads when a dashboard shows it.
+- `pokemon-card-lit.zip`: named like the dashboard resource `pokemon-card-lit.js` (`filename` in `hacs.json`), so the Marketplace installs it instead of the legacy file and unpacks it into one folder. `pokemon-card-lit.js` at the root is the dashboard resource, the chunks it loads are in `chunks/`. A card's code only loads when a dashboard shows it.
 - `pokemon-card-lit.js`: the legacy build, the same cards in one file, for Marketplace and Home Assistant versions that can't install a zip. It loads everything up front.
 
 Both install as `pokemon-card-lit.js`, so the dashboard resource is the same either way. A GitHub Action builds, tests and attaches both whenever a release is published.

@@ -1,9 +1,9 @@
 name: Release
 
 # Attaches two assets to every published release:
-# - pokemon-card-lit.zip: the build with chunks. The Marketplace installs it
-#   unpacked (see hacs.json): pokemon-card-lit.js at the root, the chunks it
-#   loads in chunks/.
+# - pokemon-card-lit.zip: the build with chunks. Named like the resource in
+#   hacs.json, the Marketplace installs it unpacked instead of the legacy file:
+#   pokemon-card-lit.js at the root, the chunks it loads in chunks/.
 # - pokemon-card-lit.js: the legacy build, everything in one file, for
 #   versions that can't install a zip.
 on:
